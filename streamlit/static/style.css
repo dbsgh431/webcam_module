@@ -1,0 +1,6 @@
+#videoElement {
+	width: 720px;
+	height: 512px;
+	background-color: #666;
+  display: inline-block;
+}
