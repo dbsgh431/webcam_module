@@ -1,16 +1,14 @@
 import cv2
 import streamlit as st
 import requests
-import time,io, threading
-import schedule
+import time,io
+
 import requests, json
 
 
 st.set_page_config(layout="wide")
 
 st.title("Webcam Live Feed")
-run = st.checkbox('실행')
-FRAME_WINDOW = st.image([])
 
 numbers = st.empty()
 
@@ -26,39 +24,45 @@ def current_location():
     return crd
 
     
-def inference(files, loc):
+def inference(files):
 
-    response = requests.post('http://118.67.129.236:30011/OD', data=loc, files=files)
-    #response = requests.post('http://118.67.129.236:30011/OD', files=files, data=crd)
-    label = response     
+    #response = requests.post('http://118.67.129.236:30011/OD', data=loc, files=files)
+    response = requests.post("http://49.50.175.25:30001/predict", files=files)
+    
+    label = response.json()["result"]   
     with numbers.container():
         st.write(f'label is {label}')
 
+run = st.checkbox('동의 및 실행')
+FRAME_WINDOW = st.image([])
 
 delta = 0
 previous = time.time()
 while run:
-    camera = cv2.VideoCapture('http://192.168.0.3:8080/video')
+    camera = cv2.VideoCapture('http://192.168.10.103:8080/video')
     _, frame = camera.read()
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     FRAME_WINDOW.image(frame)
-    is_success, im_buf_arr = cv2.imencode(".jpg", frame)
+
     current = time.time()
     delta += current - previous
     previous = current
 
     if delta > 3.0:
+        is_success, im_buf_arr = cv2.imencode(".jpg", frame)
         io_buf = io.BytesIO(im_buf_arr)
         byte_im = io_buf.getvalue()
         crd = current_location()
         loc = {"lat" : crd['lat'], "lng":crd['lng']}
         # crd = {'lat': crd['lat'], 'lng': crd['lng']}
 
-        files = [{'files', (byte_im)}]
+        files = ['files', (byte_im)]
         print(crd)
-        inference(files, loc)
+        inference(files)
         delta = 0
 else:
+    txt =  '''
+    수집한 자료는 ...
+    '''
+    st.info(txt, icon="ℹ️")
     st.write('Stopped')
-
-
