@@ -56,7 +56,7 @@ while run:
         loc = {"lat" : crd['lat'], "lng":crd['lng']}
         # crd = {'lat': crd['lat'], 'lng': crd['lng']}
 
-        files = ['files', (byte_im)]
+        files = [('files', (byte_im))]
         print(crd)
         inference(files)
         delta = 0
