@@ -2,9 +2,9 @@ import cv2
 import streamlit as st
 import requests
 import time,io
-
+import threading
 import requests, json
-
+from streamlit.script_run_context import get_script_run_ctx, add_script_run_ctx
 
 st.set_page_config(layout="wide")
 
@@ -24,21 +24,28 @@ def current_location():
     return crd
 
     
-def inference(files):
-
+def inference(byte_im):
+    files = [('files', byte_im)]
+    crd = current_location()
+    # loc = {"lat" : crd['lat'], "lng":crd['lng']}
     #response = requests.post('http://118.67.129.236:30011/OD', data=loc, files=files)
     response = requests.post("http://49.50.175.25:30001/predict", files=files)
-    
+    print(crd)
     label = response.json()["result"]   
     with numbers.container():
         st.write(f'label is {label}')
 
 run = st.checkbox('동의 및 실행')
 FRAME_WINDOW = st.image([])
-
+txt =  '''
+수집한 자료는 ...
+'''
+x= st.info(txt)
 delta = 0
 previous = time.time()
 while run:
+    if x:
+        x.empty()
     camera = cv2.VideoCapture('http://192.168.10.103:8080/video')
     _, frame = camera.read()
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -52,17 +59,13 @@ while run:
         is_success, im_buf_arr = cv2.imencode(".jpg", frame)
         io_buf = io.BytesIO(im_buf_arr)
         byte_im = io_buf.getvalue()
-        crd = current_location()
-        loc = {"lat" : crd['lat'], "lng":crd['lng']}
-        # crd = {'lat': crd['lat'], 'lng': crd['lng']}
 
-        files = [('files', (byte_im))]
-        print(crd)
-        inference(files)
+        byte_im = [byte_im]
+        
+        thread = threading.Thread(target=inference, args=byte_im)
+        add_script_run_ctx(thread)
+        thread.start()
+        #inference(files)
         delta = 0
 else:
-    txt =  '''
-    수집한 자료는 ...
-    '''
-    st.info(txt, icon="ℹ️")
     st.write('Stopped')
